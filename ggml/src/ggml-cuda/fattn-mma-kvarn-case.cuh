@@ -6,11 +6,7 @@
 
 #include <atomic>
 
-#if defined(GGML_USE_HIP)
 using ggml_cuda_fattn_kernel_attr_ptr_t = const void *;
-#else
-using ggml_cuda_fattn_kernel_attr_ptr_t = fattn_kernel_t;
-#endif
 
 // STOPGAP: keep windowed prefill single-chunk by default until the chunked
 // merge path emits reference-faithful partials. Smaller chunks remain useful
