@@ -4275,8 +4275,8 @@ static void ggml_backend_cuda_graph_optimize(ggml_backend_t backend, ggml_cgraph
     // 5. save the original cgraph and restore it in graph_compute, to enable fusion within streams
     // See discussion: https://github.com/ggml-org/llama.cpp/pull/16991#issuecomment-3522620030
 
-    const int min_fan_out = 3;
-    const int max_fan_out = 3;
+    const int min_fan_out = 2;
+    const int max_fan_out = 8;
 
     // store {fork_idx, join_idx}
     std::vector<std::pair<int, int>> concurrent_node_ranges;
@@ -4285,11 +4285,7 @@ static void ggml_backend_cuda_graph_optimize(ggml_backend_t backend, ggml_cgraph
         if (count >= min_fan_out && count <= max_fan_out) {
             const int root_node_idx = node_indices[root_node];
 
-            // only optimize for attn_norm
-            // TODO: make this more generic
-            if (!strstr(root_node->name, "attn_norm")) {
-                continue;
-            }
+            // allow any fork node with appropriate fan-out
 
             bool is_part_of_event = false;
             for (const auto & [start, end] : concurrent_node_ranges) {

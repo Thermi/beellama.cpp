@@ -837,6 +837,9 @@ llama_kv_cache::llama_kv_cache(
             buft = ggml_backend_dev_buffer_type(dev);
 
             dev_name = ggml_backend_dev_name(dev);
+        } else {
+            auto * dev = model.dev_layer(il);
+            buft = ggml_backend_dev_host_buffer_type(dev);
         }
 
         LLAMA_LOG_DEBUG("%s: layer %3d: dev = %s\n", __func__, il, dev_name);
