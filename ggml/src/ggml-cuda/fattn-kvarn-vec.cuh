@@ -182,7 +182,7 @@ static __global__ void ggml_cuda_fattn_kvarn_vec_kernel(
             const int payload_bytes = GGML_CUDA_FATTN_KVARN_DIM * GGML_CUDA_FATTN_KVARN_DIM * K_BITS / 8;
             // Prefetch the scale/zp/other axes (768 bytes at end of record)
             const char * meta = (const char *)(record + payload_bytes);
-            __builtin_prefetch(meta, 0, 1);
+            __asm__ __volatile__("prefetch.global.l2 [%0];" : : "l"(meta));
         }
         const ggml_cuda_fattn_kvarn_vec_ref & vref = v_refs[lane];
         if (vref.source == GGML_CUDA_FATTN_KVARN_VEC_RECORD) {
@@ -190,7 +190,7 @@ static __global__ void ggml_cuda_fattn_kvarn_vec_kernel(
                 ((int64_t) vref.record_group * v_desc.n_record_heads + v_desc.head_base) * v_desc.record_bytes;
             const int payload_bytes = GGML_CUDA_FATTN_KVARN_DIM * GGML_CUDA_FATTN_KVARN_DIM * V_BITS / 8;
             const char * meta = (const char *)(record + payload_bytes);
-            __builtin_prefetch(meta, 0, 1);
+            __asm__ __volatile__("prefetch.global.l2 [%0];" : : "l"(meta));
         }
     }
     __syncthreads();
@@ -207,7 +207,7 @@ static __global__ void ggml_cuda_fattn_kvarn_vec_kernel(
             if (next_ref.source == GGML_CUDA_FATTN_KVARN_VEC_RECORD) {
                 const uint8_t * next_record = k_desc.records +
                     ((int64_t) next_ref.record_group * k_desc.n_record_heads + k_desc.head_base) * k_desc.record_bytes;
-                __builtin_prefetch(next_record, 0, 1);
+                __asm__ __volatile__("prefetch.global.l2 [%0];" : : "l"(next_record));
             }
         }
 #pragma unroll
@@ -303,7 +303,7 @@ static __global__ void ggml_cuda_fattn_kvarn_vec_kernel(
                 if (next_vref.source == GGML_CUDA_FATTN_KVARN_VEC_RECORD) {
                     const uint8_t * next_record = v_desc.records +
                         ((int64_t) next_vref.record_group * v_desc.n_record_heads + v_desc.head_base) * v_desc.record_bytes;
-                    __builtin_prefetch(next_record, 0, 1);
+                    __asm__ __volatile__("prefetch.global.l2 [%0];" : : "l"(next_record));
                 }
             }
             const float v = ggml_cuda_fattn_kvarn_vec_load<V_BITS, true>(
