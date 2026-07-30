@@ -173,12 +173,43 @@ static __global__ void ggml_cuda_fattn_kvarn_vec_kernel(
     }
     __syncthreads();
 
+    // Prefetch K/V record data for the first few tokens to hide memory latency
+    if (warp_id == 0 && lane < TOKENS_PER_SPLIT && lane < token_end - token_begin) {
+        const ggml_cuda_fattn_kvarn_vec_ref & kref = k_refs[lane];
+        if (kref.source == GGML_CUDA_FATTN_KVARN_VEC_RECORD) {
+            const uint8_t * record = k_desc.records +
+                ((int64_t) kref.record_group * k_desc.n_record_heads + k_desc.head_base) * k_desc.record_bytes;
+            const int payload_bytes = GGML_CUDA_FATTN_KVARN_DIM * GGML_CUDA_FATTN_KVARN_DIM * K_BITS / 8;
+            // Prefetch the scale/zp/other axes (768 bytes at end of record)
+            const char * meta = (const char *)(record + payload_bytes);
+            __builtin_prefetch(meta, 0, 1);
+        }
+        const ggml_cuda_fattn_kvarn_vec_ref & vref = v_refs[lane];
+        if (vref.source == GGML_CUDA_FATTN_KVARN_VEC_RECORD) {
+            const uint8_t * record = v_desc.records +
+                ((int64_t) vref.record_group * v_desc.n_record_heads + v_desc.head_base) * v_desc.record_bytes;
+            const int payload_bytes = GGML_CUDA_FATTN_KVARN_DIM * GGML_CUDA_FATTN_KVARN_DIM * V_BITS / 8;
+            const char * meta = (const char *)(record + payload_bytes);
+            __builtin_prefetch(meta, 0, 1);
+        }
+    }
+    __syncthreads();
+
     constexpr int DIM_WORKERS = WARP_SIZE / TOKENS_PER_SPLIT;
     const int token_lane = lane % TOKENS_PER_SPLIT;
     const int dim_worker = lane / TOKENS_PER_SPLIT;
     float dot[MAX_GQA] = {};
     if (token_begin + token_lane < token_end &&
             k_refs[token_lane].source != GGML_CUDA_FATTN_KVARN_VEC_INVALID) {
+        // Prefetch next token's K record payload to hide memory latency
+        if (token_lane + 1 < TOKENS_PER_SPLIT && token_begin + token_lane + 1 < token_end) {
+            const ggml_cuda_fattn_kvarn_vec_ref & next_ref = k_refs[token_lane + 1];
+            if (next_ref.source == GGML_CUDA_FATTN_KVARN_VEC_RECORD) {
+                const uint8_t * next_record = k_desc.records +
+                    ((int64_t) next_ref.record_group * k_desc.n_record_heads + k_desc.head_base) * k_desc.record_bytes;
+                __builtin_prefetch(next_record, 0, 1);
+            }
+        }
 #pragma unroll
         for (int d = dim_worker; d < DIM_PER_GROUP; d += DIM_WORKERS) {
             const int dim = dim_base + d;
@@ -265,6 +296,15 @@ static __global__ void ggml_cuda_fattn_kvarn_vec_kernel(
             if (token_begin + t >= token_end ||
                     v_refs[t].source == GGML_CUDA_FATTN_KVARN_VEC_INVALID) {
                 continue;
+            }
+            // Prefetch next token's V record payload to hide memory latency
+            if (t + 1 < TOKENS_PER_SPLIT && token_begin + t + 1 < token_end) {
+                const ggml_cuda_fattn_kvarn_vec_ref & next_vref = v_refs[t + 1];
+                if (next_vref.source == GGML_CUDA_FATTN_KVARN_VEC_RECORD) {
+                    const uint8_t * next_record = v_desc.records +
+                        ((int64_t) next_vref.record_group * v_desc.n_record_heads + v_desc.head_base) * v_desc.record_bytes;
+                    __builtin_prefetch(next_record, 0, 1);
+                }
             }
             const float v = ggml_cuda_fattn_kvarn_vec_load<V_BITS, true>(
                 v_desc, v_refs[t], slice, dim);
