@@ -3994,9 +3994,12 @@ static void ggml_cuda_graph_evaluate_and_capture(ggml_backend_cuda_context * cud
                         is_concurrent_event_active = false;
                         concurrent_event           = nullptr;
                     } else {
-                        GGML_ASSERT (concurrent_event->stream_mapping.find(node) != concurrent_event->stream_mapping.end());
-                        cuda_ctx->curr_stream_no = concurrent_event->stream_mapping[node];
-                        GGML_LOG_DEBUG("Setting stream no to %d for node %s\n", cuda_ctx->curr_stream_no, node->name);
+                        auto it = concurrent_event->stream_mapping.find(node);
+                        if (it != concurrent_event->stream_mapping.end()) {
+                            cuda_ctx->curr_stream_no = it->second;
+                            GGML_LOG_DEBUG("Setting stream no to %d for node %s\n", cuda_ctx->curr_stream_no, node->name);
+                        }
+                        // view/noop nodes not in mapping stay on current stream
                     }
                 } else if (i - prev_i > 1) {
                     //the previous node was fused
@@ -4004,8 +4007,11 @@ static void ggml_cuda_graph_evaluate_and_capture(ggml_backend_cuda_context * cud
                     try_launch_concurrent_event(prev_node);
 
                     if (is_concurrent_event_active) {
-                        cuda_ctx->curr_stream_no = concurrent_event->stream_mapping[node];
-                        GGML_LOG_DEBUG("Setting stream no to %d for node %s\n", cuda_ctx->curr_stream_no, node->name);
+                        auto it = concurrent_event->stream_mapping.find(node);
+                        if (it != concurrent_event->stream_mapping.end()) {
+                            cuda_ctx->curr_stream_no = it->second;
+                            GGML_LOG_DEBUG("Setting stream no to %d for node %s\n", cuda_ctx->curr_stream_no, node->name);
+                        }
                     }
                 }
 
