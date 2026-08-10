@@ -18,8 +18,11 @@ using ggml_cuda_fattn_kernel_attr_ptr_t = fattn_kernel_t;
 static constexpr int GGML_CUDA_FATTN_KVARN_WINDOW_CHUNK = 65536;
 
 static inline bool ggml_cuda_fattn_kvarn_window_enabled() {
+    // Keep the F16-window path for large-batch prefill (Q->ne[1] > KVARN decode
+    // max): measured native record generic-MMA is ~15x slower there, while
+    // small/decode batches already route to native via the attention domain.
     const char * env = getenv("GGML_KVARN_WINDOW");
-    return env != nullptr && atoi(env) != 0;
+    return env == nullptr || atoi(env) != 0;
 }
 
 static inline int ggml_cuda_fattn_kvarn_window_chunk(const int n_kv) {
