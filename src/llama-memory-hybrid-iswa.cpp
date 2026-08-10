@@ -67,6 +67,7 @@ llama_memory_hybrid_iswa::llama_memory_hybrid_iswa(
         tail_tokens_requested,
         tail_tokens_swa_requested,
         tail_rollback_tokens,
+        hparams.n_swa_sink_tokens,
         tail_native_exact_swa
     )),
     mem_recr(new llama_memory_recurrent(

@@ -377,6 +377,7 @@ struct llama_hparams {
     static bool is_masked_swa(uint32_t n_swa, llama_swa_type swa_type,
             uint32_t sink_tokens, llama_pos p0, llama_pos p1) {
         assert(p0 >= 0 && p1 >= 0);
+        const uint32_t effective_sink = sink_tokens < n_swa ? sink_tokens : n_swa;
 
         switch (swa_type) {
             case LLAMA_SWA_TYPE_NONE:
@@ -384,7 +385,7 @@ struct llama_hparams {
                 } break;
             case LLAMA_SWA_TYPE_STANDARD:
                 {
-                    if (p0 >= (llama_pos) sink_tokens && p1 - p0 >= (int32_t) n_swa) {
+                    if (p0 >= (llama_pos) effective_sink && p1 - p0 >= (int32_t) n_swa) {
                         return true;
                     }
                 } break;

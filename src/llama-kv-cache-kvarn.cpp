@@ -481,18 +481,21 @@ uint32_t kvarn_stage_tail_groups(uint32_t n_batch, uint32_t n_ubatch, bool is_sw
     return llama_kvarn_non_swa_tail_groups(n_batch, n_ubatch);
 }
 
-uint32_t kvarn_swa_visible_groups(uint32_t kv_size, uint32_t n_swa) {
-    const uint32_t window_cells = n_swa > 0 ? std::min(kv_size, n_swa) : kv_size;
+uint32_t kvarn_swa_visible_groups(uint32_t kv_size, uint32_t n_swa, uint32_t sink_tokens) {
+    const uint32_t effective_sink = std::min(sink_tokens, n_swa);
+    const uint32_t visible_cells = n_swa + effective_sink;
+    const uint32_t window_cells = n_swa > 0 ? std::min(kv_size, visible_cells) : kv_size;
     return ((window_cells + KVAR_N_GROUP - 1u) / KVAR_N_GROUP) + 1u;
 }
 
-uint32_t kvarn_record_groups_per_stream(uint32_t kv_size, uint32_t n_ubatch, uint32_t n_swa, bool is_swa, uint32_t tail_groups) {
+uint32_t kvarn_record_groups_per_stream(uint32_t kv_size, uint32_t n_ubatch, uint32_t n_swa,
+        uint32_t sink_tokens, bool is_swa, uint32_t tail_groups) {
     if (!is_swa) {
         return (kv_size + KVAR_N_GROUP - 1u) / KVAR_N_GROUP;
     }
 
     GGML_UNUSED(tail_groups);
-    const uint32_t visible_groups = kvarn_swa_visible_groups(kv_size, n_swa);
+    const uint32_t visible_groups = kvarn_swa_visible_groups(kv_size, n_swa, sink_tokens);
     const uint32_t in_flight_groups = std::max<uint32_t>(1u, (n_ubatch + KVAR_N_GROUP - 1u) / KVAR_N_GROUP);
     return std::max<uint32_t>(1u, visible_groups + in_flight_groups - 1u);
 }
@@ -960,7 +963,8 @@ llama_kv_cache_kvarn::llama_kv_cache_kvarn(
     // size, and a batched prefill needs the union of every row's sliding window.
     // The record ring stores only tiles older than the F16 tail; loaders account
     // for the tail offset when deciding whether a ring slot is live.
-    n_groups_per_stream(kvarn_record_groups_per_stream(kv_size, n_ubatch, n_swa, swa, tail_groups)),
+    n_groups_per_stream(kvarn_record_groups_per_stream(
+        kv_size, n_ubatch, n_swa, hparams.n_swa_sink_tokens, swa, tail_groups)),
     exact_tail_tokens(tail_tokens),
     metadata_n_pad(n_pad),
     metadata_n_swa(n_swa),
@@ -1005,7 +1009,7 @@ llama_kv_cache_kvarn::llama_kv_cache_kvarn(
         // enough slots for the compressed portion of the worst-case visible tile
         // span after subtracting the F16 tail and adding the active ubatch span.
         GGML_ASSERT(n_groups_per_stream + tail_groups >=
-                kvarn_swa_visible_groups(kv_size, n_swa) + in_flight_groups - 1u &&
+                kvarn_swa_visible_groups(kv_size, n_swa, hparams.n_swa_sink_tokens) + in_flight_groups - 1u &&
             "SWA KVarN record ring is too small for the deduplicated sliding window");
     }
     // Dynamic staging keeps the F16/compressed mix stable across physical ubatch

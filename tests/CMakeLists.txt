@@ -116,6 +116,12 @@ if (Python3_Interpreter_FOUND)
         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tests/test-nanbeige-swa-attention-static.py ${PROJECT_SOURCE_DIR})
     set_property(TEST test-nanbeige-swa-attention-static PROPERTY LABELS main)
+
+    add_test(
+        NAME test-swa-sink-contract-static
+        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+        COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tests/test-swa-sink-contract-static.py ${PROJECT_SOURCE_DIR})
+    set_property(TEST test-swa-sink-contract-static PROPERTY LABELS main)
 endif()
 
 function(llama_build source)
