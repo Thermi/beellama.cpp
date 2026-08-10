@@ -12,6 +12,24 @@ void llama_model_nanbeige::load_arch_hparams(llama_model_loader & ml) {
 
     n_layer_phys = (int) hparams.n_layer();
 
+    // Optional StreamingLLM-style sink-plus-window attention.  The first
+    // sink_tokens positions remain visible while SWA retains the recent
+    // window; the sink positions are represented by the existing SWA cache
+    // and mask path without changing the default dense-attention behavior.
+    ml.get_key(LLM_KV_ATTENTION_SINK_TOKENS, hparams.n_swa_sink_tokens, false);
+
+    uint32_t swa_window = 0;
+    if (ml.get_key(LLM_KV_ATTENTION_SLIDING_WINDOW, swa_window, false) && swa_window > 0) {
+        hparams.n_swa = swa_window;
+        hparams.swa_type = LLAMA_SWA_TYPE_STANDARD;
+        uint32_t swa_period = 2;
+        ml.get_key_or_arr(LLM_KV_ATTENTION_SLIDING_WINDOW_PATTERN, swa_period, false);
+        hparams.set_swa_pattern(swa_period);
+    } else {
+        hparams.swa_type = LLAMA_SWA_TYPE_NONE;
+        hparams.n_swa = 0;
+    }
+
     // Expand logical layer count before load_tensors() allocates layers / KV.
     if (n_loops > 1) {
         GGML_ASSERT(n_layer_phys * n_loops <= (int) LLAMA_MAX_LAYERS);
@@ -71,10 +89,14 @@ void llama_model_nanbeige::load_arch_tensors(llama_model_loader &) {
 }
 
 std::unique_ptr<llm_graph_context> llama_model_nanbeige::build_arch_graph(const llm_graph_params & params) const {
-    return std::make_unique<graph>(*this, params);
+    if (hparams.swa_type == LLAMA_SWA_TYPE_STANDARD) {
+        return std::make_unique<graph<true>>(*this, params);
+    }
+    return std::make_unique<graph<false>>(*this, params);
 }
 
-llama_model_nanbeige::graph::graph(const llama_model & model, const llm_graph_params & params) :
+template <bool iswa>
+llama_model_nanbeige::graph<iswa>::graph(const llama_model & model, const llm_graph_params & params) :
         llm_graph_context(params) {
     const auto & nb = static_cast<const llama_model_nanbeige &>(model);
 
@@ -91,7 +113,13 @@ llama_model_nanbeige::graph::graph(const llama_model & model, const llm_graph_pa
 
     ggml_tensor * inp_pos = build_inp_pos();
 
-    auto * inp_attn = build_attn_inp_kv();
+    using inp_attn_type = std::conditional_t<iswa, llm_graph_input_attn_kv_iswa, llm_graph_input_attn_kv>;
+    inp_attn_type * inp_attn = nullptr;
+    if constexpr (iswa) {
+        inp_attn = build_attn_inp_kv_iswa();
+    } else {
+        inp_attn = build_attn_inp_kv();
+    }
 
     const float kq_scale = hparams.f_attention_scale == 0.0f
         ? 1.0f / sqrtf(float(n_embd_head))

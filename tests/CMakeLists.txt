@@ -92,6 +92,30 @@ if (Python3_Interpreter_FOUND)
         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
         COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tests/test-kvarn-eager-workspace-static.py)
     set_property(TEST test-kvarn-eager-workspace-static PROPERTY LABELS cuda)
+
+    add_test(
+        NAME test-cuda-prefetch-msvc-static
+        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+        COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tests/test-cuda-prefetch-msvc-static.py ${PROJECT_SOURCE_DIR})
+    set_property(TEST test-cuda-prefetch-msvc-static PROPERTY LABELS cuda)
+
+    add_test(
+        NAME test-cuda-runtime-msvc-static
+        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+        COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tests/test-cuda-runtime-msvc-static.py ${PROJECT_SOURCE_DIR})
+    set_property(TEST test-cuda-runtime-msvc-static PROPERTY LABELS cuda)
+
+    add_test(
+        NAME test-nanbeige-q4-memory-contract
+        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+        COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tests/test-nanbeige-q4-memory-contract.py ${PROJECT_SOURCE_DIR})
+    set_property(TEST test-nanbeige-q4-memory-contract PROPERTY LABELS main)
+
+    add_test(
+        NAME test-nanbeige-swa-attention-static
+        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+        COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tests/test-nanbeige-swa-attention-static.py ${PROJECT_SOURCE_DIR})
+    set_property(TEST test-nanbeige-swa-attention-static PROPERTY LABELS main)
 endif()
 
 function(llama_build source)

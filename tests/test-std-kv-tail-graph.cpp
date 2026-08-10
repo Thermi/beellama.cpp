@@ -541,7 +541,7 @@ static void test_sparse_swa_packed_oracle(ggml_backend_t backend, llama_swa_type
     for (int64_t iq = 0; iq < n_query; ++iq) {
         for (int64_t cell = 0; cell < n_kv; ++cell) {
             const bool visible = cell <= query_pos[iq] &&
-                    !llama_hparams::is_masked_swa(n_swa, swa_type, llama_pos(cell), query_pos[iq]);
+                    !llama_hparams::is_masked_swa(n_swa, swa_type, 0, llama_pos(cell), query_pos[iq]);
             bool exact = false;
             for (int64_t it = 0; it < n_tail; ++it) {
                 if (tail_cells[it] == uint32_t(cell)) {

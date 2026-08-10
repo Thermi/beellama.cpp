@@ -147,6 +147,11 @@ if (CUDAToolkit_FOUND)
                              ${GGML_SOURCES_CUDA}
                             )
 
+    if (MSVC AND (GGML_BACKEND_DL OR BUILD_SHARED_LIBS) AND NOT GGML_STATIC)
+        set_property(TARGET ggml-cuda PROPERTY CUDA_RUNTIME_LIBRARY Hybrid)
+        target_link_options(ggml-cuda PRIVATE /NODEFAULTLIB:LIBCMT)
+    endif()
+
     add_compile_definitions(GGML_CUDA_PEER_MAX_BATCH_SIZE=${GGML_CUDA_PEER_MAX_BATCH_SIZE})
 
     if (GGML_CUDA_GRAPHS)

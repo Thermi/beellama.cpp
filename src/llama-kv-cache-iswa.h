@@ -37,6 +37,7 @@ public:
                      uint32_t   tail_tokens_requested = UINT32_MAX,
                      uint32_t   tail_tokens_swa_requested = UINT32_MAX,
                      uint32_t   tail_rollback_tokens = 0,
+                     uint32_t   sink_tokens = 0,
                          bool   tail_native_exact_swa = false);
 
     // DSV4 uses a projected hparams view for its raw iSWA cache.  Keep this
@@ -66,6 +67,7 @@ public:
                      uint32_t   tail_tokens_requested = UINT32_MAX,
                      uint32_t   tail_tokens_swa_requested = UINT32_MAX,
                      uint32_t   tail_rollback_tokens = 0,
+                     uint32_t   sink_tokens = 0,
                          bool   tail_native_exact_swa = false);
 
     ~llama_kv_cache_iswa() = default;

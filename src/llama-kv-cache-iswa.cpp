@@ -38,6 +38,7 @@ llama_kv_cache_iswa::llama_kv_cache_iswa(
                  uint32_t tail_tokens_requested,
                  uint32_t tail_tokens_swa_requested,
                  uint32_t tail_rollback_tokens,
+                 uint32_t sink_tokens,
                      bool tail_native_exact_swa) :
     llama_kv_cache_iswa(
             model, model.hparams,
@@ -46,7 +47,7 @@ llama_kv_cache_iswa::llama_kv_cache_iswa(
             kv_size, n_seq_max, n_batch, n_ubatch, n_pad,
             mem_other, filter, reuse, share, kvarn, tail_tokens, tail_tokens_swa, tail_type,
             tail_tokens_requested, tail_tokens_swa_requested, tail_rollback_tokens,
-            tail_native_exact_swa) {
+            sink_tokens, tail_native_exact_swa) {
 }
 
 llama_kv_cache_iswa::llama_kv_cache_iswa(
@@ -74,6 +75,7 @@ llama_kv_cache_iswa::llama_kv_cache_iswa(
                  uint32_t tail_tokens_requested,
                  uint32_t tail_tokens_swa_requested,
                  uint32_t tail_rollback_tokens,
+                 uint32_t sink_tokens,
                      bool tail_native_exact_swa) : unified(unified) {
 
     if (tail_tokens_requested == UINT32_MAX) {
@@ -104,7 +106,8 @@ llama_kv_cache_iswa::llama_kv_cache_iswa(
 
     // note: the SWA cache is always padded to 256 for performance
     //       https://github.com/ggml-org/llama.cpp/issues/17037
-    uint32_t size_swa = GGML_PAD(std::min(size_base, hparams.n_swa*(unified ? n_seq_max : 1) + n_ubatch), 256);
+    const uint32_t sink = std::min(sink_tokens, hparams.n_swa);
+    uint32_t size_swa = GGML_PAD(std::min(size_base, (hparams.n_swa + sink)*(unified ? n_seq_max : 1) + n_ubatch), 256);
 
     const bool use_kvarn = kvarn.type != LLAMA_KVARN_TYPE_DISABLED;
     if (tail_type == GGML_TYPE_COUNT && use_kvarn) {

@@ -142,6 +142,8 @@ struct llama_hparams {
     llama_swa_type swa_type = LLAMA_SWA_TYPE_NONE;
     // the size of the sliding window (0 - no SWA)
     uint32_t n_swa = 0;
+    // Initial StreamingLLM sink tokens retained by SWA layers.
+    uint32_t n_swa_sink_tokens = 0;
 
     // if is_swa_impl[il] == 1, then layer il is SWA
     // if is_swa_impl[il] == 0, then layer il is dense (i.e. non-SWA)
@@ -372,7 +374,8 @@ struct llama_hparams {
     // note: inlined on purpose for performance reasons
     // TODO: think of a better place for this function
     // TODO: pack the SWA params in a struct?
-    static bool is_masked_swa(uint32_t n_swa, llama_swa_type swa_type, llama_pos p0, llama_pos p1) {
+    static bool is_masked_swa(uint32_t n_swa, llama_swa_type swa_type,
+            uint32_t sink_tokens, llama_pos p0, llama_pos p1) {
         assert(p0 >= 0 && p1 >= 0);
 
         switch (swa_type) {
@@ -381,7 +384,7 @@ struct llama_hparams {
                 } break;
             case LLAMA_SWA_TYPE_STANDARD:
                 {
-                    if (p1 - p0 >= (int32_t) n_swa) {
+                    if (p0 >= (llama_pos) sink_tokens && p1 - p0 >= (int32_t) n_swa) {
                         return true;
                     }
                 } break;

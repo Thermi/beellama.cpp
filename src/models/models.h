@@ -427,6 +427,7 @@ struct llama_model_mellum : public llama_model_base {
 
 struct llama_model_nanbeige : public llama_model_base {
     llama_model_nanbeige(const struct llama_model_params & params) : llama_model_base(params) {}
+
     void load_arch_hparams(llama_model_loader & ml) override;
     void load_arch_tensors(llama_model_loader & ml) override;
 
@@ -434,6 +435,7 @@ struct llama_model_nanbeige : public llama_model_base {
     int  n_layer_phys = 0;
     bool skip_loop_final_norm = false;
 
+    template <bool iswa>
     struct graph : public llm_graph_context {
         graph(const llama_model & model, const llm_graph_params & params);
     };

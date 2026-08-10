@@ -2381,7 +2381,8 @@ llama_kv_cache::slot_info llama_kv_cache::find_slot(const llama_ubatch & ubatch,
                         const llama_seq_id seq_id_cell = cells.seq_get(idx);
 
                         // SWA mask
-                        if (llama_hparams::is_masked_swa(n_swa, swa_type, pos_cell, cells.seq_pos_max(seq_id_cell) + 1)) {
+                        if (llama_hparams::is_masked_swa(n_swa, swa_type, hparams.n_swa_sink_tokens,
+                                pos_cell, cells.seq_pos_max(seq_id_cell) + 1)) {
                             can_use = true;
                         }
                     }
@@ -3376,7 +3377,8 @@ static void set_input_kq_mask_impl(const args_set_input_kq_mask & args, T * data
 
                 // apply SWA if any
                 if (swa) {
-                    if (llama_hparams::is_masked_swa(n_swa, swa_type, p0, p1)) {
+                    if (llama_hparams::is_masked_swa(
+                            n_swa, swa_type, args.hparams.n_swa_sink_tokens, p0, p1)) {
                         goto skip;
                     }
                 }
@@ -3815,7 +3817,7 @@ llama_kv_cache::state_v2_manifest llama_kv_cache::state_v2_collect(
             bool include = !cells.is_empty(i) && (seq_id == -1 || cells.seq_has(i, seq_id));
             if (include && seq_id != -1) {
                 include = !llama_hparams::is_masked_swa(
-                        n_swa, swa_type, cells.pos_get(i), cells.seq_pos_max(seq_id));
+                        n_swa, swa_type, hparams.n_swa_sink_tokens, cells.pos_get(i), cells.seq_pos_max(seq_id));
             }
             if (!include) {
                 continue;
@@ -4768,7 +4770,7 @@ void llama_kv_cache::state_write_body(llama_io_write_i & io, llama_seq_id seq_id
 
             // check the cell is not SWA-masked
             if (add_cell && seq_id != -1) {
-                const bool is_masked = llama_hparams::is_masked_swa(n_swa, swa_type, cells.pos_get(i), cells.seq_pos_max(seq_id));
+                const bool is_masked = llama_hparams::is_masked_swa(n_swa, swa_type, hparams.n_swa_sink_tokens, cells.pos_get(i), cells.seq_pos_max(seq_id));
 
                 add_cell = !is_masked;
             }
@@ -5002,7 +5004,7 @@ std::vector<int32_t> llama_kv_cache::state_tail_payload_slots(llama_seq_id seq_i
             bool included = !cells.is_empty(cell) && (seq_id == -1 || cells.seq_has(cell, seq_id));
             if (included && seq_id != -1) {
                 included = !llama_hparams::is_masked_swa(
-                        n_swa, swa_type, cells.pos_get(cell), cells.seq_pos_max(seq_id));
+                        n_swa, swa_type, hparams.n_swa_sink_tokens, cells.pos_get(cell), cells.seq_pos_max(seq_id));
             }
             if (!included) {
                 continue;
@@ -5059,7 +5061,7 @@ void llama_kv_cache::state_write_tail(llama_io_write_i & io, llama_seq_id seq_id
             bool included = !cells.is_empty(cell) && (seq_id == -1 || cells.seq_has(cell, seq_id));
             if (included && seq_id != -1) {
                 included = !llama_hparams::is_masked_swa(
-                        n_swa, swa_type, cells.pos_get(cell), cells.seq_pos_max(seq_id));
+                        n_swa, swa_type, hparams.n_swa_sink_tokens, cells.pos_get(cell), cells.seq_pos_max(seq_id));
             }
             if (!included) {
                 continue;

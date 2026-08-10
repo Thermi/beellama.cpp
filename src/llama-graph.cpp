@@ -493,7 +493,7 @@ void llm_graph_input_attn_no_cache::set_input(const llama_ubatch * ubatch) {
                 }
 
                 // apply SWA if any
-                if (llama_hparams::is_masked_swa(n_swa, swa_type, p0, p1)) {
+                if (llama_hparams::is_masked_swa(n_swa, swa_type, hparams.n_swa_sink_tokens, p0, p1)) {
                     continue;
                 }
 
