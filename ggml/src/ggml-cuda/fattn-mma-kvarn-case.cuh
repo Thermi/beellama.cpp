@@ -19,7 +19,7 @@ static constexpr int GGML_CUDA_FATTN_KVARN_WINDOW_CHUNK = 65536;
 
 static inline bool ggml_cuda_fattn_kvarn_window_enabled() {
     const char * env = getenv("GGML_KVARN_WINDOW");
-    return env == nullptr || atoi(env) != 0;
+    return env != nullptr && atoi(env) != 0;
 }
 
 static inline int ggml_cuda_fattn_kvarn_window_chunk(const int n_kv) {
