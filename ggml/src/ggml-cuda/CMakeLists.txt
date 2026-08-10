@@ -148,7 +148,12 @@ if (CUDAToolkit_FOUND)
                             )
 
     if (MSVC AND (GGML_BACKEND_DL OR BUILD_SHARED_LIBS) AND NOT GGML_STATIC)
-        set_property(TARGET ggml-cuda PROPERTY CUDA_RUNTIME_LIBRARY Hybrid)
+        if (CUDAToolkit_VERSION VERSION_GREATER_EQUAL "13.2")
+            # CUDA 13.2+ replaces Windows -cudart=shared with hybrid.
+            set_property(TARGET ggml-cuda PROPERTY CUDA_RUNTIME_LIBRARY Hybrid)
+        else()
+            set_property(TARGET ggml-cuda PROPERTY CUDA_RUNTIME_LIBRARY Shared)
+        endif()
         target_link_options(ggml-cuda PRIVATE /NODEFAULTLIB:LIBCMT)
     endif()
 
