@@ -142,6 +142,8 @@ struct llama_hparams {
     llama_swa_type swa_type = LLAMA_SWA_TYPE_NONE;
     // the size of the sliding window (0 - no SWA)
     uint32_t n_swa = 0;
+    // The periodicity used to derive the SWA layer pattern.
+    uint32_t n_swa_pattern = 0;
     // Initial StreamingLLM sink tokens retained by SWA layers.
     uint32_t n_swa_sink_tokens = 0;
 

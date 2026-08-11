@@ -268,7 +268,9 @@ void llama_model_saver::add_kv_from_model() {
     add_kv(LLM_KV_ATTENTION_RELATIVE_BUCKETS_COUNT,  hparams.n_rel_attn_bkts);
     add_kv(LLM_KV_ATTENTION_SLIDING_WINDOW,          hparams.n_swa);
     add_kv(LLM_KV_ATTENTION_SINK_TOKENS,             hparams.n_swa_sink_tokens);
-    // add_kv(LLM_KV_ATTENTION_SLIDING_WINDOW_PATTERN,  ???);
+    if (hparams.n_swa > 0) {
+        add_kv(LLM_KV_ATTENTION_SLIDING_WINDOW_PATTERN, hparams.n_swa_pattern);
+    }
     add_kv(LLM_KV_ATTENTION_SCALE,                   hparams.f_attention_scale);
     add_kv(LLM_KV_ATTENTION_OUTPUT_SCALE,            hparams.f_attn_out_scale);
     add_kv(LLM_KV_ATTENTION_VALUE_SCALE,             hparams.f_attn_value_scale);

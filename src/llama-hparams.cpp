@@ -6,6 +6,7 @@
 #include <cassert>
 
 void llama_hparams::set_swa_pattern(uint32_t n_pattern, bool dense_first) {
+    n_swa_pattern = n_pattern;
     if (dense_first) {
         for (uint32_t il = 0; il < n_layer(); ++il) {
             is_swa_impl[il] = n_pattern == 0 || (il % n_pattern != 0);
